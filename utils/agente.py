@@ -7,21 +7,55 @@ import os
 import streamlit as st
 from google import genai
 
-api_key = os.getenv("GEMINI_API_KEY")
+api_keys = []
 
-if not api_key:
+# 1. Leer varias claves desde variables de entorno
+env_keys = os.getenv("GEMINI_API_KEYS", "").strip()
+
+if env_keys:
+    api_keys = [
+        key.strip()
+        for key in env_keys.split(",")
+        if key.strip()
+    ]
+
+# 2. Compatibilidad con una sola clave en el entorno
+if not api_keys and os.getenv("GEMINI_API_KEY"):
+    api_keys = [os.getenv("GEMINI_API_KEY")]
+
+# 3. Leer los Secrets de Streamlit
+if not api_keys:
     try:
-        api_key = st.secrets["GEMINI_API_KEY"]
-    except (KeyError, FileNotFoundError):
-        api_key = None
+        secret_keys = st.secrets.get("GEMINI_API_KEYS", [])
 
-if not api_key:
+        if isinstance(secret_keys, str):
+            api_keys = [
+                key.strip()
+                for key in secret_keys.split(",")
+                if key.strip()
+            ]
+        else:
+            api_keys = list(secret_keys)
+
+        if not api_keys:
+            single_key = st.secrets.get("GEMINI_API_KEY")
+            if single_key:
+                api_keys = [single_key]
+
+    except Exception:
+        api_keys = []
+
+# 4. Comprobar la configuración
+api_keys = [key for key in api_keys if key]
+
+if not api_keys:
     raise ValueError(
-        "Falta GEMINI_API_KEY. Configúrala en .env "
-        "o en los Secrets de Streamlit Cloud."
+        "No se encontraron API Keys. Configura GEMINI_API_KEYS "
+        "o GEMINI_API_KEY en los Secrets de Streamlit."
     )
 
-cliente = genai.Client(api_key=api_key)
+# Inicializar Gemini con la primera clave
+cliente = genai.Client(api_key=api_keys[0])
 
 
 def preguntar_al_pdf(texto_pdf, pregunta, df_excel=None):
