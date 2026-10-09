@@ -9,6 +9,17 @@ from google import genai
 
 api_keys = []
 
+api_keys = [key.strip() for key in api_keys if key and key.strip()]
+
+# Eliminar claves duplicadas, conservando el orden
+api_keys = list(dict.fromkeys(api_keys))
+
+if not api_keys:
+    raise ValueError(
+        "No hay API Keys configuradas. "
+        "Revisa GEMINI_API_KEYS en Streamlit Secrets."
+    )
+
 # 1. Leer varias claves desde variables de entorno
 env_keys = os.getenv("GEMINI_API_KEYS", "").strip()
 
@@ -178,25 +189,70 @@ RESPUESTA:
 """
 
 
+    
     # =========================
-    # CONSULTAR GEMINI
+    # CONSULTAR GEMINI CON ROTACIÓN DE CLAVES
     # =========================
 
-    try:
+    errores = []
 
-        respuesta = cliente.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-        )
+    for indice, api_key in enumerate(api_keys):
+        try:
+            cliente = genai.Client(api_key=api_key)
 
-        return respuesta.text
+            respuesta = cliente.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+            )
 
+            if respuesta.text:
+                return respuesta.text
 
-    except Exception as e:
+            return "El modelo no devolvió una respuesta de texto."
 
-        return (
-            "⚠️ El servicio de inteligencia artificial no está "
-            "disponible en este momento. "
-            "Intenta nuevamente en unos minutos.\n\n"
-            f"Detalle técnico: {e}"
-        )
+        except Exception as e:
+            status = (
+                getattr(e, "code", None)
+                or getattr(e, "status_code", None)
+            )
+
+            mensaje = str(e).lower()
+
+            # Errores en los que tiene sentido probar otra clave
+            reintentable = (
+                status in (401, 403, 429, 500, 502, 503, 504)
+                or any(
+                    termino in mensaje
+                    for termino in (
+                        "resource_exhausted",
+                        "quota exceeded",
+                        "rate limit",
+                        "api key not valid",
+                        "invalid api key",
+                    )
+                )
+            )
+
+            # Guardar solo información técnica del error,
+            # nunca la clave utilizada
+            errores.append(
+                f"Clave {indice + 1}: "
+                f"{type(e).__name__}, código={status}"
+            )
+
+            if not reintentable:
+                print("Error de Gemini:", errores[-1])
+                return (
+                    "No se pudo completar la consulta. "
+                    "Revisa los registros de la aplicación."
+                )
+
+            print("Se intentará otra clave:", errores[-1])
+
+    print("Se agotaron las API Keys configuradas.")
+
+    return (
+        "⚠️ No se pudo obtener una respuesta de Gemini "
+        "con las claves configuradas. Comprueba las cuotas, "
+        "los permisos y la validez de las claves."
+    )
