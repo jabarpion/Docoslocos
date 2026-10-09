@@ -9,17 +9,6 @@ from google import genai
 
 api_keys = []
 
-api_keys = [key.strip() for key in api_keys if key and key.strip()]
-
-# Eliminar claves duplicadas, conservando el orden
-api_keys = list(dict.fromkeys(api_keys))
-
-if not api_keys:
-    raise ValueError(
-        "No hay API Keys configuradas. "
-        "Revisa GEMINI_API_KEYS en Streamlit Secrets."
-    )
-
 # 1. Leer varias claves desde variables de entorno
 env_keys = os.getenv("GEMINI_API_KEYS", "").strip()
 
