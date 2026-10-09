@@ -4,16 +4,24 @@ from utils.lector_excel import leer_excel
 from utils.consultor_excel import buscar_en_excel, dataframe_a_texto
 
 import os
-from dotenv import load_dotenv
+import streamlit as st
 from google import genai
 
+api_key = os.getenv("GEMINI_API_KEY")
 
-load_dotenv()
+if not api_key:
+    try:
+        api_key = st.secrets["GEMINI_API_KEY"]
+    except (KeyError, FileNotFoundError):
+        api_key = None
 
+if not api_key:
+    raise ValueError(
+        "Falta GEMINI_API_KEY. Configúrala en .env "
+        "o en los Secrets de Streamlit Cloud."
+    )
 
-cliente = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
+cliente = genai.Client(api_key=api_key)
 
 
 def preguntar_al_pdf(texto_pdf, pregunta, df_excel=None):
