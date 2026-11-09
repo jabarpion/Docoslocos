@@ -1,4 +1,4 @@
-# 🤖 Agente Inteligente Docoslocos copia y mejora de FrutAlura.
+# 🤖 Agente Inteligente Docoslocos copia y mejora de FrutAlura. (En desarrollo).
 
 Presento mi Agente Inteligente pensado en una solución tecnológica a las múltiples preguntas que deben responder en Recursos Humanos y/o los embalajes de producción de una empresa frutícola.
 
@@ -12,7 +12,7 @@ El proyecto implementa un flujo **RAG (Retrieval-Augmented Generation)** sencill
 
 La aplicación está desplegada en **Streamlit Community Cloud**.
 
-**URL:** https://frutalura-t5sqymuhxa9xkh3yljkbrd.streamlit.app/
+**URL:** https://docoslocos-gytyvaqwq2fcdtvft5ydpl.streamlit.app/
 
 ---
 
