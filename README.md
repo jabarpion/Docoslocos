@@ -1,4 +1,4 @@
-# 🤖 Agente Inteligente FrutAlura con modificaciones posteriores al primer proyecto
+# 🤖 Agente Inteligente Docoslocos copia y mejora de FrutAlura.
 
 Presento mi Agente Inteligente pensado en una solución tecnológica a las múltiples preguntas que deben responder en Recursos Humanos y/o los embalajes de producción de una empresa frutícola.
 
