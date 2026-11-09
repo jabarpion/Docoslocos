@@ -4,8 +4,14 @@ from utils.lector_excel import leer_excel
 from utils.consultor_excel import buscar_en_excel, dataframe_a_texto
 
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 import streamlit as st
 from google import genai
+
+# Cargar el .env ubicado en la raíz del proyecto.
+ruta_env = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(ruta_env, override=False)
 
 api_keys = []
 
@@ -48,6 +54,8 @@ if not api_keys:
 # 4. Comprobar la configuración
 api_keys = [key for key in api_keys if key]
 
+print("Claves Gemini cargadas:", len(api_keys))
+
 if not api_keys:
     raise ValueError(
         "No se encontraron API Keys. Configura GEMINI_API_KEYS "
@@ -58,7 +66,7 @@ if not api_keys:
 cliente = genai.Client(api_key=api_keys[0])
 
 
-def preguntar_al_pdf(texto_pdf, pregunta, df_excel=None):
+def preguntar_al_pdf(texto_pdf, pregunta, df_excel=None, texto_docx=None):
 
     # =========================
     # BUSCAR EN EL PDF
@@ -98,8 +106,12 @@ def preguntar_al_pdf(texto_pdf, pregunta, df_excel=None):
     # COMPROBAR SI HAY INFORMACIÓN
     # =========================
 
-    if not contexto_pdf.strip() and (
-        df_excel is None or not contexto_excel.strip()
+    contexto_docx = texto_docx.strip() if texto_docx else ""
+
+    if (
+        not contexto_pdf.strip()
+        and not contexto_excel.strip()
+        and not contexto_docx
     ):
         return "No encontré esa información en los documentos."
 
@@ -131,8 +143,17 @@ def preguntar_al_pdf(texto_pdf, pregunta, df_excel=None):
     if contexto_excel.strip():
 
         contexto += (
-            "INFORMACIÓN DE LA TABLA DE EMBALAJES Y ETIQUETAS:\n\n"
+            "INFORMACIÓN DE LA TABLA DE EMBALAJES Y ETIQUETAS (EXCEL):\n\n"
             + contexto_excel
+            + "\n\n"
+        )
+
+    if contexto_docx:
+
+        contexto += (
+            "INFORMACIÓN DE FICHAS DE EMBALAJE "
+            "(DOCX, TEXTO OBTENIDO POR OCR):\n\n"
+            + contexto_docx
         )
 
 
@@ -145,7 +166,7 @@ def preguntar_al_pdf(texto_pdf, pregunta, df_excel=None):
     # =========================
 
     prompt = f"""
-Eres un asistente inteligente de FrutAlura.
+Eres el asistente inteligente de Docoslocos, especializado en consultar la documentación de FrutAlura.
 
 Tu tarea es responder preguntas utilizando únicamente
 la información contenida en el contexto entregado.
@@ -155,10 +176,16 @@ Reglas:
 - No inventes información.
 - No uses conocimiento externo.
 - Utiliza únicamente la información del contexto.
-- Si la respuesta está en la tabla de embalajes y etiquetas,
-  utiliza esa información.
-- Si la respuesta está en el Código de Conducta,
-  utiliza esa información.
+- Si el Excel contiene códigos o cantidades solicitados,
+  utiliza sus datos como fuente preferente.
+- Si la información está en el Código de Conducta (PDF),
+  utiliza esa fuente.
+- El texto del DOCX proviene de OCR y puede contener errores.
+- No inventes ni completes códigos, descripciones o cantidades
+  que no se lean claramente.
+- Si el OCR contradice el Excel, indica la discrepancia.
+- Si un dato del OCR es dudoso y el Excel no permite confirmarlo,
+  informa que no se puede determinar con certeza.
 - Si la información necesaria no aparece en el contexto,
   responde exactamente:
 
